@@ -1,0 +1,1 @@
+CUSTOM_ACCESS_URL = "https://voice-kit-v2-demo.firebaseio.com"
