@@ -21,3 +21,11 @@ https://www.twilio.com/blog/2017/06/how-to-use-twilio-speech-recognition.html <b
 
 ## Develop account emergency code:
 qVZeg9y9XtP5eVzzARMg5l6i5Xdv1Lg9wV9Sm2RE
+
+## Auto start setting
+```
+cd /usr/sbin
+sudo nano api.sh
+modify the code as :sudo python3 /home/ubuntu/twilio_chatbot_with_phone/main.py
+save it and reboot
+```
