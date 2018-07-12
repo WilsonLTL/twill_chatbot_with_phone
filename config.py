@@ -15,13 +15,9 @@ QUESTION = {
     "hints":[],
     "answer":""
 },{
-    "question_asking": ["唔知道點樣稱呼?", "點樣稱呼你呢?"],
+    "question_asking": ["唔知道點樣稱呼你呢?", "點樣稱呼你呢?"],
     "hints": [],
     "answer": ""
-},{
-    "question_asking": ["hihihi","byebyebye"],
-    "hint":[],
-    "answer":""
 }
 
 QUESTION_SIZE = 4
