@@ -16,6 +16,7 @@ def voice():
     """Respond to incoming phone calls and mention the caller's city"""
     resp = VoiceResponse()
     resp.say('Hello你好,有咩幫到你?', language="zh-HK",voice='alice')
+    resp.play(url='https://api.twilio.com/cowbell.mp3')
     gather = Gather(input='speech',action='/intent',language='yue-Hant-HK', method='POST', speechTimeout='auto')
     resp.append(gather)
     resp.redirect('/voice',method='GET')
@@ -93,9 +94,11 @@ def start_survey():
         "question": config.QUESTION
     })
     resp = VoiceResponse()
-    say_str = "你好,呢度係"+str(config.SURVEY_FROM)+"問卷調查,唔知你有冇時間幫手做份問卷呢?"
-    print(say_str)
-    resp.say(say_str,language="zh-HK")
+    # say_str = "你好,呢度係"+str(config.SURVEY_FROM)+"問卷調查,唔知你有冇時間幫手做份問卷呢?"
+    # print(say_str)
+
+    # resp.say(say_str,language="zh-HK")
+    resp.play(url=config.WELCOME_ASKING_VOICE)
     gather = Gather(input='speech', action="/survey/"+record_id+"/1/0", hints=config.SURVEY_ACCEPT_HINT, language='yue-Hant-HK', method='POST',
                     speechTimeout='auto')
     resp.append(gather)
@@ -121,7 +124,8 @@ def survery(record_id,question_id,error_count):
                 status = False
     print("status:",status)
     if status is False:
-        resp.say(config.SURVEY_REJECT_SENTENCE, language="zh-HK")
+        # resp.say(config.SURVEY_REJECT_SENTENCE, language="zh-HK")
+        resp.play(url=config.SURVEY_REJECT_VOICE)
         return str(resp)
 
     current_question_location = question_id -1
@@ -156,20 +160,24 @@ def survery(record_id,question_id,error_count):
 
         if status is False and error_count <1:
             error_count += 1
-            say_sen = config.REPEAT_SENTENCE1 + question[randint(0, len_size - 1)]
+            # say_sen = config.REPEAT_SENTENCE1 + question[randint(0, len_size - 1)]
+            resp.play(url=config.REPEAT_VOICE1)
         elif status is False and error_count < 2:
             error_count += 1
-            say_sen = config.REPEAT_SENTENCE2 + question[randint(0, len_size - 1)]
+            # say_sen = config.REPEAT_SENTENCE2 + question[randint(0, len_size - 1)]
+            resp.play(url=config.REPEAT_VOICE2)
         elif status is False and error_count >=2:
             error_count=0
-            say_sen = config.NEXT_QUESTION + question[randint(0, len_size - 1)]
+            # say_sen = config.NEXT_QUESTION + question[randint(0, len_size - 1)]
+            resp.play(url=config.NEXT_QUESTION_VOICE)
         else:
             error_count=0
             say_sen = question[randint(0, len_size - 1)]
-
-        resp.say(say_sen, language="zh-HK")
+         # resp.say(say_sen, language="zh-HK")
+        resp.play(url=say_sen)
     else:
-        resp.say(config.THANKS_SENTENCE, language="zh-HK")
+        #resp.say(config.THANKS_SENTENCE, language="zh-HK")
+        resp.play(url=config.THANKS_VOICE)
 
     if question_id == config.QUESTION_SIZE+1:
         print(item)
@@ -212,8 +220,8 @@ def get_response_get(choice):
     url="http://test.nlp.checkx.hk/NLP?Key=0bb18fb84259c567c723ba96188f47ac&Say="+choice+"&SessionID=xxx"
     response = requests.get(url)
     print(json.loads(response.text))
-    if 'Success' in json.loads(response.text):
-        if json.loads(response.text)['Success']==False:
+    if 'success' in json.loads(response.text):
+        if json.loads(response.text)['success']==False:
             result = "唔好意思,我唔係好明你講咩,你啱啱講咗"+choice
         else:
             result = json.loads(response.text)['Speech']
