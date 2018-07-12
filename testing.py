@@ -1,11 +1,5 @@
-import json
-record = []
 
-print(str(record))
 
-new_record = str(record)
-
-print(new_record)
-
-new_record_json = json.loads(new_record)
-
+for items in data:
+    if items["record_id"] == record_id:
+        item = items["question"]

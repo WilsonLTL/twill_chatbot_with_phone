@@ -93,100 +93,66 @@ def start_survey():
         "question": config.QUESTION
     })
     resp = VoiceResponse()
-    say_str = "你好,呢度係"+str(config.SURVEY_FROM)+"問卷調查,唔知你有冇時間幫手做份問卷呢?"
-    print(say_str)
-    resp.say(say_str,language="zh-HK")
-    gather = Gather(input='speech', action="/survey/"+record_id+"/1/0", hints=config.SURVEY_ACCEPT_HINT, language='yue-Hant-HK', method='POST',
+    resp.say('你好,呢度係'+config.SURVEY_FROM+'問卷調查,唔知你有冇時間幫手做份問卷呢?',language=config.LANG)
+    gather = Gather(input='speech', action="/survey/"+record_id+"/1", language='yue-Hant-HK', method='POST',
                     speechTimeout='auto')
     resp.append(gather)
-    resp.redirect('/start_survey', method='POST')
+    resp.redirect('/end_survey', method='POST')
     return str(resp)
 
 
-@app.route('/survey/<record_id>/<question_id>/<error_count>', methods=['POST'])
-def survery(record_id,question_id,error_count):
-    status = True
-    error_count = int(error_count)
+@app.route('/survey/<record_id>/<question_id>', methods=['POST'])
+def survery(record_id,question_id):
+
     question_id = int(question_id)
-    resp = VoiceResponse()
-    choice = request.values['SpeechResult']
-
-    if question_id == 1 :
-        print(choice)
-        for hint in config.SURVEY_ACCEPT_HINT:
-            if hint in choice:
-                status = True
-                break
-            else:
-                status = False
-    print("status:",status)
-    if status is False:
-        resp.say(config.SURVEY_REJECT_SENTENCE, language="zh-HK")
-        return str(resp)
-
-    current_question_location = question_id -1
     item = []
     for items in data:
         if items["record_id"] == record_id:
             item = items["question"]
 
+    resp = VoiceResponse()
+    choice = request.values['SpeechResult']
 
-    print("user response:",choice)
-    print("question_id:",question_id)
-    if question_id >= 2 and question_id <= 5:
-        hints_size = len(item[current_question_location-1]["hints"])
+    if question_id >= 2 and question_id <= 4:
+        hints_size = len(item[question_id-1]["hints"])
         if hints_size == 0:
-            item[question_id-2]["answer"] = choice
+            item[question_id - 1]["answer"] = choice
         else:
-            for hint in item[current_question_location-1]["hints"]:
+            for hint in item[question_id-1]["hints"]:
                 if hint in choice:
-                    status = True
-                    item[question_id-2]["answer"] = choice
+                    item[question_id - 1]["answer"] = choice
                     break
                 else:
-                    status = False
+                    question_id -= 1
 
-    if status is False and error_count<2:
-        question_id -=1
-        current_question_location = question_id -1
+    question = item[question_id - 1]["question_asking"]
+    len_size = len(question)
+    resp.say(question[randint(0, len_size - 1)], language="zh-HK")
 
-    if current_question_location>=0 and current_question_location <= 3:
-        question = item[current_question_location]["question_asking"]
-        len_size = len(question)
-
-        if status is False and error_count <1:
-            error_count += 1
-            say_sen = config.REPEAT_SENTENCE1 + question[randint(0, len_size - 1)]
-        elif status is False and error_count < 2:
-            error_count += 1
-            say_sen = config.REPEAT_SENTENCE2 + question[randint(0, len_size - 1)]
-        elif status is False and error_count >=2:
-            error_count=0
-            say_sen = config.NEXT_QUESTION + question[randint(0, len_size - 1)]
-        else:
-            error_count=0
-            say_sen = question[randint(0, len_size - 1)]
-
-        resp.say(say_sen, language="zh-HK")
+    if question_id == 4:
+        gather = Gather(input='speech', action='/end_survey/'+record_id, language='yue-Hant-HK', method='POST',
+                        speechTimeout='auto')
     else:
-        resp.say(config.THANKS_SENTENCE, language="zh-HK")
-
-    if question_id == config.QUESTION_SIZE+1:
-        print(item)
-        create_agent_db(item)
-    else:
-        gather = Gather(input='speech', action='/survey/' + record_id + '/' + str(question_id + 1) + '/'+str(error_count),
+        gather = Gather(input='speech', action='/survey/' + record_id + '/' + str(question_id + 1),
                         language='yue-Hant-HK', method='POST', speechTimeout='auto')
-        resp.append(gather)
-        resp.redirect('/survey/' + record_id + '/' + str(question_id) + '/'+str(error_count) , method='POST')
+
+    resp.append(gather)
+    resp.redirect('/end_survey', method='POST')
+
     return str(resp)
 
 @app.route('/end_survey/<record_id>', methods=['POST'])
 def end_survery(record_id):
+    resp = VoiceResponse()
+    choice = request.values['SpeechResult']
     for item in data:
         if item['record_id'] == record_id:
+            item['question'].append({"question_id":5,"answer":choice})
             create_agent_db(item)
-    return str(True)
+
+    resp.say('多謝你接受訪問,拜拜', language="zh-HK")
+    print(data)
+    return str(resp)
 
 
 def get_response_post(choice):
