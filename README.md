@@ -45,3 +45,8 @@ https://www.twilio.com/blog/2017/06/how-to-use-twilio-speech-recognition.html <b
 ## Develop account emergency code:
 qVZeg9y9XtP5eVzzARMg5l6i5Xdv1Lg9wV9Sm2RE
 
+## update of remark
+Change the income call URL : <br >
+main.py -> line 219 -> get_response_get -> modify the url
+
+

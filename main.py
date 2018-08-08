@@ -217,16 +217,20 @@ def get_response_post(choice):
 
 
 def get_response_get(choice):
-    url="http://test.nlp.checkx.hk/NLP?Key=0bb18fb84259c567c723ba96188f47ac&Say="+choice+"&SessionID=xxx"
+    url="https://nlp.asiabots.com/CareClub?Key=f9bbe5f386487c416d4153b9ba307ad7&SessionID=CareClubXXX&Say="+choice
     response = requests.get(url)
     print(json.loads(response.text))
-    if 'success' in json.loads(response.text):
-        if json.loads(response.text)['success']==False:
-            result = "唔好意思,我唔係好明你講咩,你啱啱講咗"+choice
-        else:
-            result = json.loads(response.text)['Speech']
-    else:
+    # if 'success' in json.loads(response.text):
+    #     if json.loads(response.text)['Success']==False:
+    #         result = "唔好意思,我唔係好明你講咩,你啱啱講咗"+choice
+    #     else:
+    #         result = json.loads(response.text)['Speech']
+    # else:
+    #     result = json.loads(response.text)['Speech']
+    if 'Speech' in json.loads(response.text):
         result = json.loads(response.text)['Speech']
+    else:
+        result = "唔好意思,我唔係好明你講咩,你啱啱講咗" + choice
     return str(result)
 
 
