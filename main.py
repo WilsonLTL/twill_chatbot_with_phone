@@ -1,25 +1,27 @@
-from flask import Flask, request,url_for,jsonify
+from flask import Flask, request, url_for, jsonify
 from twilio.rest import Client
-from twilio.twiml.voice_response import VoiceResponse,Gather
-import random,string,requests,json
+from twilio.twiml.voice_response import VoiceResponse, Gather
+import random, string, requests, json
 from firebase import firebase
 from random import randint
 import config
+
 fb = firebase.FirebaseApplication(config.CUSTOM_ACCESS_URL, None)
 
 app = Flask(__name__)
 
 data = []
 
+
 @app.route("/voice", methods=['GET', 'POST'])
 def voice():
     """Respond to incoming phone calls and mention the caller's city"""
     resp = VoiceResponse()
-    resp.say('Hello你好,有咩幫到你?', language="zh-HK",voice='alice')
+    resp.say('Hello你好,有咩幫到你?', language="zh-HK", voice='alice')
     resp.play(url='https://api.twilio.com/cowbell.mp3')
-    gather = Gather(input='speech',action='/intent',language='yue-Hant-HK', method='POST', speechTimeout='auto')
+    gather = Gather(input='speech', action='/intent', language='yue-Hant-HK', method='POST', speechTimeout='auto')
     resp.append(gather)
-    resp.redirect('/voice',method='GET')
+    resp.redirect('/voice', method='GET')
     return str(resp)
 
 
@@ -27,10 +29,10 @@ def voice():
 def voice_eng():
     """Respond to incoming phone calls and mention the caller's city"""
     resp = VoiceResponse()
-    gather = Gather(input='speech',action='/intent', method='POST')
+    gather = Gather(input='speech', action='/intent', method='POST')
     resp.append(gather)
     resp.say('Hello,what can i help you?')
-    resp.redirect('/voice',method='GET')
+    resp.redirect('/voice', method='GET')
     return str(resp)
 
 
@@ -60,7 +62,7 @@ def intent_eng():
         print("enter if SpeechResult")
         choice = request.values['SpeechResult']
         print("result:", choice)
-        resp.say('You just say '+choice)
+        resp.say('You just say ' + choice)
     else:
         print("inside else")
         resp.say("Sorry, we can't detect what you say")
@@ -77,9 +79,10 @@ def call_survey():
         if phone_number is not None and phone_number != "":
             client = Client(sid, token)
             client.calls.create(
-                url=url_for('.start_survey',_external=True),
+                record=True,
+                url=url_for('.start_survey', _external=True),
                 to=phone_number,
-                from_='+85230080480'
+                from_='+85230080480',
             )
         return jsonify({'message': 'Call incoming!'})
     except Exception as ex:
@@ -94,27 +97,32 @@ def start_survey():
         "question": config.QUESTION
     })
     resp = VoiceResponse()
-    # say_str = "你好,呢度係"+str(config.SURVEY_FROM)+"問卷調查,唔知你有冇時間幫手做份問卷呢?"
-    # print(say_str)
+    say_str = "你好,呢度係" + str(config.SURVEY_FROM) + "問卷調查,唔知你有冇時間幫手做份問卷呢?"
 
-    # resp.say(say_str,language="zh-HK")
-    resp.play(url=config.WELCOME_ASKING_VOICE)
-    gather = Gather(input='speech', action="/survey/"+record_id+"/1/0", hints=config.SURVEY_ACCEPT_HINT, language='yue-Hant-HK', method='POST',
+    print(say_str)
+    resp.say(say_str, language="zh-HK")
+    gather = Gather(input='speech', action="/survey/" + record_id + "/1/0", hints=config.SURVEY_ACCEPT_HINT,
+                    language='yue-Hant-HK', method='POST',
                     speechTimeout='auto')
+
     resp.append(gather)
     resp.redirect('/start_survey', method='POST')
+    resp.say('I did not receive a recording')
+    #resp.play(url=config.WELCOME_ASKING_VOICE)
     return str(resp)
 
 
 @app.route('/survey/<record_id>/<question_id>/<error_count>', methods=['POST'])
-def survery(record_id,question_id,error_count):
+def survery(record_id, question_id, error_count):
     status = True
     error_count = int(error_count)
     question_id = int(question_id)
     resp = VoiceResponse()
+    # resp.record(timeout=10, transcribe=True)
+    print(request.values)
     choice = request.values['SpeechResult']
 
-    if question_id == 1 :
+    if question_id == 1:
         print(choice)
         for hint in config.SURVEY_ACCEPT_HINT:
             if hint in choice:
@@ -122,72 +130,80 @@ def survery(record_id,question_id,error_count):
                 break
             else:
                 status = False
-    print("status:",status)
+    print("status:", status)
     if status is False:
-        # resp.say(config.SURVEY_REJECT_SENTENCE, language="zh-HK")
-        resp.play(url=config.SURVEY_REJECT_VOICE)
+        resp.say(config.SURVEY_REJECT_SENTENCE, language="zh-HK")
+        # resp.play(url=config.SURVEY_REJECT_VOICE)
         return str(resp)
 
-    current_question_location = question_id -1
+    current_question_location = question_id - 1
     item = []
     for items in data:
         if items["record_id"] == record_id:
             item = items["question"]
 
-
-    print("user response:",choice)
-    print("question_id:",question_id)
+    print("user response:", choice)
+    print("question_id:", question_id)
     if question_id >= 2 and question_id <= 5:
-        hints_size = len(item[current_question_location-1]["hints"])
+        hints_size = len(item[current_question_location - 1]["hints"])
         if hints_size == 0:
-            item[question_id-2]["answer"] = choice
+            item[question_id - 2]["answer"] = choice
         else:
-            for hint in item[current_question_location-1]["hints"]:
+            for hint in item[current_question_location - 1]["hints"]:
                 if hint in choice:
                     status = True
-                    item[question_id-2]["answer"] = choice
+                    item[question_id - 2]["answer"] = choice
                     break
                 else:
                     status = False
 
-    if status is False and error_count<2:
-        question_id -=1
-        current_question_location = question_id -1
+    if status is False and error_count < 2:
+        question_id -= 1
+        current_question_location = question_id - 1
 
-    if current_question_location>=0 and current_question_location <= 3:
-        question = item[current_question_location]["question_asking"]
+    if current_question_location >= 0 and current_question_location <= 3:
+        question = item[current_question_location]["question_asking_sentence"]
         len_size = len(question)
 
-        if status is False and error_count <1:
+        if status is False and error_count < 1:
             error_count += 1
-            # say_sen = config.REPEAT_SENTENCE1 + question[randint(0, len_size - 1)]
-            resp.play(url=config.REPEAT_VOICE1)
+            say_sen = config.REPEAT_SENTENCE1 + question[randint(0, len_size - 1)]
+            resp.say(say_sen, language="zh-HK")
+            # resp.play(url=config.REPEAT_VOICE1)
         elif status is False and error_count < 2:
             error_count += 1
-            # say_sen = config.REPEAT_SENTENCE2 + question[randint(0, len_size - 1)]
-            resp.play(url=config.REPEAT_VOICE2)
-        elif status is False and error_count >=2:
-            error_count=0
+            say_sen = config.REPEAT_SENTENCE2 + question[randint(0, len_size - 1)]
+            resp.say(say_sen, language="zh-HK")
+            # resp.play(url=config.REPEAT_VOICE2)
+        elif status is False and error_count >= 2:
+            error_count = 0
             # say_sen = config.NEXT_QUESTION + question[randint(0, len_size - 1)]
-            resp.play(url=config.NEXT_QUESTION_VOICE)
+            say_sen = config.DIAL_PHONE
+            resp.say(say_sen, language="zh-HK")
+            resp.dial(config.DIAL_PHONE_CALL)
+            #  resp.play(url=config.NEXT_QUESTION_VOICE)
         else:
-            error_count=0
+            error_count = 0
             say_sen = question[randint(0, len_size - 1)]
-         # resp.say(say_sen, language="zh-HK")
-        resp.play(url=say_sen)
+            resp.say(say_sen, language="zh-HK")
+        # resp.dial(
+        #     "+85296613227"
+        # )
     else:
-        #resp.say(config.THANKS_SENTENCE, language="zh-HK")
-        resp.play(url=config.THANKS_VOICE)
+        resp.say(config.THANKS_SENTENCE, language="zh-HK")
+        # resp.play(url=config.THANKS_VOICE)
 
-    if question_id == config.QUESTION_SIZE+1:
+    if question_id == config.QUESTION_SIZE + 1:
         print(item)
         create_agent_db(item)
     else:
-        gather = Gather(input='speech', action='/survey/' + record_id + '/' + str(question_id + 1) + '/'+str(error_count),
+        gather = Gather(input='speech',
+                        action='/survey/' + record_id + '/' + str(question_id + 1) + '/' + str(error_count),
                         language='yue-Hant-HK', method='POST', speechTimeout='auto')
         resp.append(gather)
-        resp.redirect('/survey/' + record_id + '/' + str(question_id) + '/'+str(error_count) , method='POST')
+        resp.redirect('/survey/' + record_id + '/' + str(question_id) + '/' + str(error_count), method='POST')
     return str(resp)
+
 
 @app.route('/end_survey/<record_id>', methods=['POST'])
 def end_survery(record_id):
@@ -217,16 +233,9 @@ def get_response_post(choice):
 
 
 def get_response_get(choice):
-    url="https://nlp.asiabots.com/CareClub?Key=f9bbe5f386487c416d4153b9ba307ad7&SessionID=CareClubXXX&Say="+choice
+    url = "https://nlp.asiabots.com/CareClub?Key=f9bbe5f386487c416d4153b9ba307ad7&SessionID=CareClubXXX&Say=" + choice
     response = requests.get(url)
     print(json.loads(response.text))
-    # if 'success' in json.loads(response.text):
-    #     if json.loads(response.text)['Success']==False:
-    #         result = "唔好意思,我唔係好明你講咩,你啱啱講咗"+choice
-    #     else:
-    #         result = json.loads(response.text)['Speech']
-    # else:
-    #     result = json.loads(response.text)['Speech']
     if 'Speech' in json.loads(response.text):
         result = json.loads(response.text)['Speech']
     else:
@@ -236,11 +245,11 @@ def get_response_get(choice):
 
 def create_agent_db(result):
     try:
-        result = fb.post('/survey',result)
-        return {"status":"success"}
+        result = fb.post('/survey', result)
+        return {"status": "success"}
     except Exception as ex:
         print(ex)
-        return {"status":"fail"}
+        return {"status": "fail"}
 
 
 if __name__ == "__main__":

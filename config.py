@@ -25,6 +25,9 @@ QUESTION = {
 }
 QUESTION_SIZE = 4
 WELCOME_ASKING_VOICE="url"
+DIAL_PHONE_CALL = ""
+# phone number to allow real person to handle the call
+
 #line 100
 SURVEY_ACCEPT_HINT=["好","冇問題","ok","可以","講","有"]
 SURVEY_REJECT_SENTENCE="唔緊要,打攪晒你啦,拜拜"
@@ -42,6 +45,8 @@ REPEAT_VOICE2="url"
 NEXT_QUESTION="好對唔住,我都係聽唔清楚,不如我哋跳咗呢一題佢先啦,"
 NEXT_QUESTION_VOICE="url"
 #line 171
+
+DIAL_PHONE="好對唔住,我都係聽唔清楚,等我轉介俾其他同事幫你啦"
 
 THANKS_SENTENCE="多謝你接受訪問,拜拜."
 THANKS_VOICE="url"
